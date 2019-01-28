@@ -1,5 +1,5 @@
 {======================= Keyboard Handler ==========================
-  Retruns scancodes for any pressed key, including ALT, SCR, NUM etc.
+  Returns the scancode for any pressed key, including ALT, CTRL, SCROLL, NUM etc.
 
  v.0.1 - 10.09.2018 by Jan Knipperts}
 
