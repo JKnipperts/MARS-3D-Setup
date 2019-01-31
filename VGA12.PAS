@@ -1,53 +1,58 @@
 {Unit for 640x480 VGA Mode (12h)
- Fast functions for lines, frames, buttons etc.
+ Version 0.2 (Oktober 2018) (c) 2018 by Jan Knipperts
+ 
+ Fast functions for drawing lines, frames, windows, buttons etc.
+ 
+ USE ONLY FOR MODE 12h (640x480 with 16 colors)! 
+ This mode uses a different memeory organisation than other graphics modes!
 
- Version 0.2 (Oktober 2018)
- - fixed a small bug in the buttons text alignment
- Jan Knipperts}
+- fixed a small bug in the buttons text alignment}
+ 
 
 
 Unit VGA12;
 
 interface
-uses misc;
+uses misc;   {Uses my misc unit}
 
 Function detectVGA : Boolean;
-{detect VGA compatible grafic cards  }
+{detects VGA compatible graphics cards  }
 
 procedure Block(X1,Y1,X2,Y2:word; Color:byte);
-{ Fill (X1,Y1)-(X2,Y1) with Color, VGA only, 640 lines, 16 color mode, PD }
+{Fills (X1,Y1)-(X2,Y2) with the specified color. }
 
 procedure Line(X1,Y1,X2,Y2:word; Color:byte);
-{ Draw a line from (X1,Y1)-(X2,Y2) in Color, VGA only, 640 lines, 16 colors }
-{ Originally from a HGC line routine in a book, converted to VGA by me }
+{Draws a line from (X1,Y1) to (X2,Y2) in the specified color}
 
 Procedure Rectangle(x,y,x1,y1 : word);
+{Draws a rectange)
 
 Procedure Frame(x,y,x1,y1 : word);
+{Draws a double lined rectangular frame}
 
 Procedure Button(x,y,x1,y1 : word; pressed : boolean; text : string);
+{Draws a Button with text "Text" centered. If pressed is true then we button will be drawn in a darker gray}
 
 Procedure Window(x,y,x1,y1 : word);
+{Draws a Window}
 
 Procedure Load_BIOS_font;
-{Loads the font out of the ROM}
+{Loads the system font from ROM}
 
 Procedure Out(x,y,size,v : word; color : byte; text : string);
-{draw a string in the IBM 8x8 font}
+{draws a string in the IBM 8x8 system font}
 
 implementation
 
 type
-   OneChar = array[1..8] of byte;       { Data for the 8x8 IBM-font}
+   OneChar = array[1..8] of byte;       { Buffer for a 8x8 IBM-font char}
 
 var
-   charset                : array[1..256] of onechar; {Code Page}
-
-
+   charset                : array[1..256] of onechar; {Buffer for the complete code Page}
 
 
 Function detectVGA : Boolean;
-{detect VGA compatible grafic cards  }
+{detects VGA compatible graphics cards  }
 assembler;
 asm
   mov ah,$1a            {ah = 1Ah}
@@ -65,7 +70,7 @@ asm
 end;
 
 
-procedure PixelAddrHGC; assembler;
+procedure PixelAddr; assembler;
 asm
  mov cl,bl
  shr bx,3
@@ -159,8 +164,6 @@ end;
 
 
 procedure Line(X1,Y1,X2,Y2:word; Color:byte); assembler;
-{ Draw a line from (X1,Y1)-(X2,Y2) in Color, VGA only, 640 lines, 16 colors }
-{ Originally from a HGC line routine in a book, converted to VGA by me }
 const
  ByteOffsetShift=3;
 var
@@ -177,7 +180,7 @@ asm
         out dx,ax
         mov cx,X2
         sub cx,X1
-        jz @VertLineHGC    { Jump if X1=X2, VertLine }
+        jz @VertLine       { Jump if X1=X2, VertLine }
         jns @Li01          { Jump if X2>X1, no swap }
         neg cx
         mov bx,X2
@@ -189,14 +192,14 @@ asm
 @Li01:  mov bx,Y2
         sub bx,Y1
         jnz @Li02          { Jump if Y1<>Y2, no HorizLine }
-        jmp @HorizLineHGC
+        jmp @HorizLine
 @Li02:  jns @Li03          { Jump if Y2 > Y1, no swap }
         neg bx
         neg si
-@Li03:  mov routine,offset @LoSlopeLineHGC
+@Li03:  mov routine,offset @LoSlopeLine
         cmp bx,cx
         jle @Li04
-        mov routine,offset @HiSlopeLineHGC
+        mov routine,offset @HiSlopeLine
         xchg bx,cx
 @Li04:  shl bx,1
         mov incr1,bx
@@ -207,7 +210,7 @@ asm
         push cx
         mov ax,Y1
         mov bx,X1
-        call PixelAddrHGC
+        call PixelAddr
         mov al,1
         shl ax,cl
         mov dx,ax
@@ -216,7 +219,7 @@ asm
         inc cx
         jmp routine          { Var containing LoSlope/HiSlope }
 
-@VertLineHGC: mov ax,Y1
+@VertLine: mov ax,Y1
         mov bx,Y2
         mov cx,bx
         sub cx,ax
@@ -226,7 +229,7 @@ asm
 @Li31:  inc cx
         mov bx,X1
         push cx
-        call PixelAddrHGC
+        call PixelAddr
         mov al,1
         shl ax,cl
         not ah
@@ -237,10 +240,10 @@ asm
         loop @Li32
         jmp @Liexit
 
-@HorizLineHGC:
+@HorizLine:
         mov ax,Y1
         mov bx,X1
-        call PixelAddrHGC
+        call PixelAddr
         mov di,bx
         mov dh,ah
         not dh
@@ -282,7 +285,7 @@ asm
         mov es:[di],al
         jmp @Liexit
 
-@LoSlopeLineHGC:
+@LoSlopeLine:
 @Li10:  mov ah,es:[bx]
         xor ah,ah
 @Li11:  or ah,dl
@@ -312,7 +315,7 @@ asm
         loop @Li10
         jmp @Liexit
 
-@HiSlopeLineHGC:
+@HiSlopeLine:
 @Li21:  mov al,es:[bx]
         mov es:[bx],dl
         add bx,si
@@ -337,7 +340,6 @@ end;
 
 
 Procedure Load_BIOS_font;
-{Loads the font out of the ROM}
 var
  memcounter,               {memmory counter}
  bytecounter,              {byte counter}
@@ -356,7 +358,6 @@ end;
 
 
 Procedure Out(x,y,size,v : word; color : byte; text : string);
-{draw a string in the IBM 8x8 font}
   var
     MemPos,
     TempPos : word;
@@ -436,14 +437,14 @@ begin
    Rectangle(x,y,x1,y1);
    if not pressed then
    begin
-    line(x+1,y+1,x1-1,y+1,15);       {oben}
-    line(x+1,y+2,x1-1,y+2,15);       {oben 2}
-    line(x+1,y+1,x+1,y1-1,15);       {links}
-    line(x+2,y+1,x+2,y1-1,15);       {links2}
-    line(x+1,y1-1,x1-1,y1-1,8);      {unten}
-    line(x+1,y1-2,x1-1,y1-2,8);      {unten 2}
-    line(x1-1,y+1,x1-1,y1-1,8);      {rechts}
-    line(x1-2,y+1,x1-2,y1-1,8);      {rechts 2}
+    line(x+1,y+1,x1-1,y+1,15);       {upper line}
+    line(x+1,y+2,x1-1,y+2,15);       {second upper line}
+    line(x+1,y+1,x+1,y1-1,15);       {left line}
+    line(x+2,y+1,x+2,y1-1,15);       {second left line}
+    line(x+1,y1-1,x1-1,y1-1,8);      {bottom line}
+    line(x+1,y1-2,x1-1,y1-2,8);      {second bottom line}
+    line(x1-1,y+1,x1-1,y1-1,8);      {right line}
+    line(x1-2,y+1,x1-2,y1-1,8);      {second right line}
    end;
 end;
 
