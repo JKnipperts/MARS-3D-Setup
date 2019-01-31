@@ -22,13 +22,13 @@ type
    lastkey                : byte;
 
 Procedure initKB;
-{Init own keyboard handler}
+{Initializes the keyboard handler}
 Procedure deinitKB;
-{Restore original handler}
+{Restores the original handler}
 Function GetKeyName(code : byte) : string;
-{Returns keyname for scancode}
+{Returns the key name for the given scancode as string}
 Function GetanyKey : byte;
-{Retruns scancode for pressed key}
+{Returns the scan code of the pressed key. Also works for special keys like ALT, CTRL etc.}
 
 
 implementation
