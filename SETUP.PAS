@@ -1848,7 +1848,7 @@ begin
     end;
 
    until quit;
-   block(1,1,640,480,0);  {For DOSBox compabilty}
+   block(1,1,640,480,0);  {Needed for DOSBox compatibility because it does not clear the vmem like original hardware}
    HideCursor;
   asm
    mov ax,0003h
