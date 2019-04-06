@@ -7,7 +7,7 @@ conversion of whole strings into capital letters as well as delay and keyboard r
 
 
 interface
-uses crt;
+
 
 
 
